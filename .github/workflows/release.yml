@@ -40,7 +40,10 @@ jobs:
     - name: Build for ${{ matrix.arch }}
       run: |
         make clean
-        CC="gcc $ARCH_FLAGS" make
+        # Set include and library paths for Capstone
+        export CFLAGS="-Wall -g -DDARWIN $ARCH_FLAGS -I$(brew --prefix capstone)/include"
+        export LDFLAGS="-L$(brew --prefix capstone)/lib"
+        make CC="gcc" CFLAGS="$CFLAGS" LIBS="-lcapstone"
 
     - name: Rename binary with architecture suffix
       run: |

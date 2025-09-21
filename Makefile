@@ -13,9 +13,6 @@ endif
 $(TARGET): $(SOURCES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
 
-clean:
-	rm -f $(TARGET) *.o
-
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/
 
@@ -35,7 +32,6 @@ test: $(TARGET)
 
 static: $(SOURCES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) -L/usr/local/lib -lcapstone
-
 
 clean:
 	rm -f $(TARGET) *.o
