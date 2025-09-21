@@ -1,27 +1,46 @@
-# machsec
-
 <div align="center">
-  <img src="assets/logo.png" alt="machsec logo" width="200">
+  <img src="assets/logo.png" alt="machsec logo" width="180">
+
+  # machsec
+
+  **A comprehensive binary security analysis tool for macOS and iOS**
+
+  [![License](https://img.shields.io/badge/license-Open%20Source-blue.svg)](LICENSE)
+  [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20iOS-green.svg)](#)
+  [![Architecture](https://img.shields.io/badge/arch-x86__64%20%7C%20ARM64-orange.svg)](#)
+  [![Tests](https://img.shields.io/badge/tests-30%2F30%20passing-brightgreen.svg)](#testing)
+
+  ---
+
+  **machsec** detects and reports security mitigations in Mach-O executables with comprehensive support for Apple platform-specific security features. Originally designed for ELF binaries, it has been fully ported and enhanced for macOS and iOS environments.
 </div>
 
-A comprehensive binary security analysis tool that detects and reports on security mitigations enabled in Mach-O executables for macOS and iOS. Originally designed for ELF binaries, machsec has been fully ported to support Apple's Mach-O format with enhanced detection capabilities for Apple platform-specific security features.
+## 🔍 Features
 
-## Features
+**machsec** provides comprehensive analysis of security mitigations across multiple categories:
 
-machsec analyzes Mach-O binaries for the following security mitigations:
+<details>
+<summary><strong>🛡️ Core Memory Protection</strong></summary>
 
-### Core Memory Protection Features
 - **RELRO** (Relocation Read-Only) - Limited support on macOS due to Mach-O format differences
 - **Stack Canaries** - Stack smashing protection via compiler-generated canaries with symbol and disassembly detection
 - **NX Bit** (No-eXecute) - Non-executable stack/heap protection (enabled by default on modern macOS)
 - **PIE** (Position Independent Executable) - Address space layout randomization support
 
-### Path and Runtime Security
+</details>
+
+<details>
+<summary><strong>🔐 Runtime & Path Security</strong></summary>
+
 - **RPATH/RUNPATH** - Dynamic library search path security analysis with @rpath detection
-- **FORTIFY_SOURCE** - Enhanced bounds checking for standard library functions  
+- **FORTIFY_SOURCE** - Enhanced bounds checking for standard library functions
 - **Symbol Stripping** - Binary obfuscation and debugging information removal
 
-### Advanced Modern Mitigations
+</details>
+
+<details>
+<summary><strong>🚀 Advanced Modern Mitigations</strong></summary>
+
 - **UBSan** (Undefined Behavior Sanitizer) - Runtime undefined behavior detection
 - **ASAN** (Address Sanitizer) - Memory error detection
 - **Control Flow Integrity (CFI)** - Modern ROP/JOP attack prevention
@@ -30,178 +49,271 @@ machsec analyzes Mach-O binaries for the following security mitigations:
 - **Heap Hardening** - Heap corruption detection mechanisms
 - **Integer Overflow Protection** - Arithmetic overflow detection
 
-### macOS/iOS-Specific Security Features
+</details>
+
+<details>
+<summary><strong>🍎 Apple Platform-Specific Features</strong></summary>
+
 - **Sandbox** (App Sandbox) - macOS/iOS application sandboxing with entitlement analysis
 - **Hardened Runtime** - macOS runtime hardening protections
 - **Library Validation** - Ensures only system-signed libraries can be loaded
 - **Code Signing** - Binary signature verification for macOS/iOS
 - **PAC** (Pointer Authentication Code) - ARM64 hardware-assisted code integrity for Apple Silicon and iOS devices
 
-## Installation
+</details>
 
-### Dependencies
+## 📦 Installation
 
-Required system packages for macOS:
+### Prerequisites
+
+<table>
+<tr>
+<td><strong>System Requirements</strong></td>
+<td>macOS 10.15+ or iOS development environment</td>
+</tr>
+<tr>
+<td><strong>Development Tools</strong></td>
+<td>Xcode Command Line Tools</td>
+</tr>
+<tr>
+<td><strong>Dependencies</strong></td>
+<td>Capstone disassembly engine</td>
+</tr>
+</table>
+
+### Quick Setup
+
 ```bash
-# Install Xcode Command Line Tools
+# 1. Install Xcode Command Line Tools
 xcode-select --install
 
-# Install Capstone disassembly engine (via Homebrew)
+# 2. Install Capstone disassembly engine
 brew install capstone
-```
 
-### Build and Install
-
-```bash
-# Build the tool
+# 3. Clone and build
+git clone <repository-url>
+cd machsec
 make
 
-# Install system-wide (optional)  
-sudo make install
-
-# Run comprehensive tests to verify installation
+# 4. Verify installation
 make test
 ```
 
-## Usage
+### Optional System Installation
 
-### Basic Analysis
 ```bash
-# Analyze a system binary
-./machsec /bin/ls
-
-# Check an iOS/macOS application
-./machsec /Applications/Safari.app/Contents/MacOS/Safari
-
-# Analyze a custom binary
-./machsec ./myapp
+# Install globally (requires sudo)
+sudo make install
 ```
 
-### Sample Output
+## 🚀 Usage
+
+### Basic Commands
+
+```bash
+# Analyze system binaries
+./machsec /bin/ls
+./machsec /usr/bin/ssh
+
+# Check macOS applications
+./machsec /Applications/Safari.app/Contents/MacOS/Safari
+./machsec /System/Applications/Calculator.app/Contents/MacOS/Calculator
+
+# Analyze custom binaries
+./machsec ./your-binary
+./machsec /path/to/ios/app
+```
+
+### Example Output
 
 <div align="center">
-  <img src="assets/screenshot.png" alt="machsec sample output" width="600">
+  <img src="assets/screenshot.png" alt="machsec analysis results" width="700">
+  <p><em>Sample security analysis output showing comprehensive mitigation detection</em></p>
 </div>
 
-### Output Format
-The tool displays results in a color-coded table format:
-- 🟢 **Green**: Security feature enabled/good configuration
-- 🟡 **Yellow**: Partial protection, unknown status, or platform-specific notes
-- 🔴 **Red**: Security feature disabled or dangerous configuration
+### Understanding Results
 
-## Comparison with Similar Tools
+| Status | Meaning | Action Required |
+|--------|---------|----------------|
+| 🟢 **Green** | Security feature enabled | ✅ Good configuration |
+| 🟡 **Yellow** | Partial/Unknown/Platform-specific | ⚠️ Review recommended |
+| 🔴 **Red** | Security feature disabled | ❌ Mitigation needed |
 
-| Feature | machsec | checksec.rs | checksec-js | Traditional checksec |
-|---------|-----------|-------------|-------------|----------------------|
-| **Platform Support** |
-| macOS/iOS Mach-O | ✅ **Full support** | ✅ Basic support | ✅ Basic support | ❌ Linux ELF only |
-| Multi-architecture | ✅ x86_64, ARM64, ARM32, Universal binaries | ✅ Multi-platform | ✅ Multi-platform | ❌ Limited |
-| **Basic Mitigations** |
+## 🆚 Tool Comparison
+
+<details>
+<summary><strong>📊 Feature Comparison Matrix</strong></summary>
+
+| Feature | **machsec** | checksec.rs | checksec-js | Traditional checksec |
+|---------|-------------|-------------|-------------|----------------------|
+| **🖥️ Platform Support** |
+| macOS/iOS Mach-O | ✅ **Full support** | ✅ Basic | ✅ Basic | ❌ Linux only |
+| Multi-architecture | ✅ **x86_64, ARM64, Universal** | ✅ Multi-platform | ✅ Multi-platform | ❌ Limited |
+| **🛡️ Basic Mitigations** |
 | RELRO | ✅ Mach-O segment analysis | ✅ Basic | ✅ Basic | ✅ ELF-specific |
-| Stack Canaries | ✅ **Symbol + disassembly analysis** | ✅ Symbol-based | ✅ Symbol-based | ✅ Symbol-based |
-| NX/DEP | ✅ Mach-O segment permissions | ✅ Basic | ✅ Basic | ✅ ELF segments |
-| PIE/ASLR | ✅ Mach-O header + fat binary support | ✅ Basic | ✅ Basic | ✅ ELF headers |
-| RPATH/RUNPATH | ✅ **@rpath analysis** | ❌ Not implemented | ✅ Basic | ✅ ELF-specific |
-| FORTIFY_SOURCE | ✅ Symbol analysis | ✅ Basic | ✅ Basic | ✅ Symbol-based |
-| **Advanced Features** |
-| Control Flow Integrity (CFI) | ✅ Symbol detection | ❌ Limited | ❌ Limited | ❌ Not supported |
-| Intel CET | ✅ **Platform-aware (N/A on macOS)** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
-| UBSan/ASAN Detection | ✅ **Comprehensive sanitizer analysis** | ❌ Limited | ❌ Limited | ❌ Not supported |
+| Stack Canaries | ✅ **Symbol + disassembly** | ✅ Symbol-based | ✅ Symbol-based | ✅ Symbol-based |
+| NX/DEP | ✅ Mach-O segments | ✅ Basic | ✅ Basic | ✅ ELF segments |
+| PIE/ASLR | ✅ **Mach-O + fat binary** | ✅ Basic | ✅ Basic | ✅ ELF headers |
+| **🚀 Advanced Features** |
+| Control Flow Integrity | ✅ **Symbol detection** | ❌ Limited | ❌ Limited | ❌ Not supported |
+| Sanitizers (UBSan/ASAN) | ✅ **Comprehensive** | ❌ Limited | ❌ Limited | ❌ Not supported |
 | Stack Clash Protection | ✅ **Advanced detection** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
-| Heap/Integer Protection | ✅ **Comprehensive coverage** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
-| **Apple-Specific Features** |
-| Sandbox Detection | ✅ **Entitlement parsing + symbol analysis** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
+| **🍎 Apple-Specific** |
+| Sandbox Detection | ✅ **Entitlement parsing** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
 | Hardened Runtime | ✅ **Full detection** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
-| Library Validation | ✅ **Code signature analysis** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
-| Code Signing | ✅ **Mach-O signature verification** | ✅ Basic | ❌ Not supported | ❌ Not supported |
-| PAC (Pointer Auth) | ✅ **ARM64E subtype detection** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
-| **Technical Advantages** |
-| Fat Binary Handling | ✅ **ARM64 preference logic** | ❌ Basic | ❌ Basic | ❌ Not supported |
+| PAC (Pointer Auth) | ✅ **ARM64E detection** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
+| **⚡ Technical** |
 | Detection Method | **Static + disassembly + entitlements** | Static analysis | Static analysis | Symbol table only |
-| Performance | Optimized C with Capstone | Rust implementation | JavaScript | Shell script |
 | Test Coverage | ✅ **100% (30/30 tests)** | ❌ Limited | ❌ Limited | ❌ Basic |
 
-### Key Advantages Over Other Tools
+</details>
 
-1. **Apple Platform Focus**: Only tool with comprehensive macOS/iOS-specific feature detection
-2. **Multi-Architecture Support**: Handles Universal binaries with intelligent architecture selection
-3. **Advanced Detection**: Combines symbol analysis, disassembly, and entitlement parsing
-4. **Comprehensive Testing**: 30 test cases ensuring 100% detection accuracy
-5. **Modern Security Features**: Supports latest Apple Silicon PAC technology
+### 🎯 Key Advantages
 
-## Architecture Support
+| Advantage | Description |
+|-----------|-------------|
+| 🍎 **Apple Platform Focus** | Only tool with comprehensive macOS/iOS-specific feature detection |
+| 🏗️ **Multi-Architecture** | Handles Universal binaries with intelligent architecture selection |
+| 🔬 **Advanced Detection** | Combines symbol analysis, disassembly, and entitlement parsing |
+| ✅ **Comprehensive Testing** | 30 test cases ensuring 100% detection accuracy |
+| 🆕 **Modern Security** | Supports latest Apple Silicon PAC technology |
 
-machsec supports analysis of Mach-O binaries for:
+## 🏗️ Architecture Support
 
-- **x86_64** (Intel Macs)
-- **ARM64** (Apple Silicon Macs, iOS devices)
-- **ARM32** (Legacy iOS devices)
-- **Universal/Fat Binaries** (with intelligent architecture selection)
+<div align="center">
 
-The tool automatically detects and analyzes the appropriate architecture, preferring ARM64 when available in Universal binaries.
+| Architecture | Platform | Status |
+|--------------|----------|---------|
+| **x86_64** | Intel Macs | ✅ Full Support |
+| **ARM64** | Apple Silicon, iOS | ✅ Full Support |
+| **ARM32** | Legacy iOS | ✅ Full Support |
+| **Universal** | Multi-arch binaries | ✅ Smart Selection |
 
-## Testing
+</div>
 
-The project includes comprehensive test binaries to validate detection accuracy:
+> **Smart Architecture Selection**: Automatically detects and analyzes the optimal architecture, with ARM64 preference for Universal binaries.
+
+## 🧪 Testing & Validation
+
+### Test Suite Overview
+
+**machsec** includes comprehensive test coverage to ensure detection accuracy:
 
 ```bash
-# Run all security mitigation tests (30 test cases)
+# Run complete test suite
 make test
-
-# Results show 100% success rate
-Test Execution Statistics:
-├─ Total Tests Run: 30
-├─ Tests Passed: 30
-├─ Tests Failed: 0
-└─ Success Rate: 100%
 ```
 
-Test binaries include:
-- **Positive tests**: Binaries compiled with specific security features enabled
-- **Negative tests**: Binaries compiled with security features disabled
-- **System binary validation**: Real-world macOS binary analysis
+<div align="center">
 
-## Technical Implementation
+### 📊 Test Results
 
-### Detection Methods
-- **Mach-O Static Analysis**: Parses load commands, segments, and symbol tables
-- **Disassembly Engine**: Uses Capstone for ARM64/x86_64 instruction analysis
-- **Entitlement Parsing**: Extracts and analyzes code signature entitlements
-- **Multi-Architecture**: Intelligent handling of Universal/Fat binaries
-- **Symbol Analysis**: Comprehensive static and dynamic symbol table inspection
+```
+Test Execution Statistics:
+├─ Total Tests Run: 30
+├─ Tests Passed: 30  ✅
+├─ Tests Failed: 0   ✅
+└─ Success Rate: 100% 🎯
+```
 
-### Architecture
-- **Core Engine**: `detect.c` - Mach-O security feature detection logic
-- **Table Rendering**: `table.c` - Formatted output with color coding
-- **Main Driver**: `main.c` - Mach-O parsing and detection orchestration
-- **Comprehensive Tests**: 30 test cases with positive/negative validation
+</div>
 
-## Platform-Specific Notes
+### Test Categories
 
-### macOS Limitations
-- **RELRO**: Limited support due to Mach-O format differences from ELF
-- **Traditional Linux Features**: CET, SECCOMP not available on macOS
+| Test Type | Description | Coverage |
+|-----------|-------------|----------|
+| **✅ Positive Tests** | Binaries with security features enabled | Feature detection |
+| **❌ Negative Tests** | Binaries with security features disabled | Absence detection |
+| **🔍 System Validation** | Real-world macOS binary analysis | Production accuracy |
 
-### iOS/Apple Silicon Features
-- **PAC**: Full support for ARM64E Pointer Authentication Code detection
-- **Sandbox**: Advanced entitlement-based detection beyond simple symbol checking
-- **Code Signing**: Native Mach-O signature verification
+## ⚙️ Technical Implementation
 
-## Development Status
+### 🔬 Detection Methods
 
-### Current Features ✅
-All listed security mitigations are fully implemented and tested with 100% test coverage.
+<div align="center">
 
-### Recently Added 
+| Method | Technology | Purpose |
+|--------|------------|---------|
+| **Static Analysis** | Mach-O Parser | Load commands, segments, symbols |
+| **Disassembly** | Capstone Engine | ARM64/x86_64 instruction analysis |
+| **Entitlements** | Code Signature Parser | Apple platform security features |
+| **Multi-Arch** | Fat Binary Handler | Universal binary intelligence |
+
+</div>
+
+### 🏗️ Code Architecture
+
+```
+src/
+├── detect.c      # 🧠 Core security detection engine
+├── table.c       # 🎨 Formatted output & color coding
+├── main.c        # 🚀 Mach-O parsing & orchestration
+└── tests/        # ✅ 30 comprehensive test cases
+```
+
+### 🔧 Key Technologies
+
+- **Capstone Disassembler** - Multi-architecture instruction analysis
+- **Mach-O Parser** - Native Apple binary format support
+- **Code Signature API** - Entitlement and signing validation
+
+## 📋 Platform Notes
+
+### ⚠️ macOS Limitations
+
+| Feature | Status | Reason |
+|---------|--------|---------|
+| **RELRO** | Limited | Mach-O format differences from ELF |
+| **Intel CET** | N/A | Intel x86-specific, not available on macOS |
+| **SECCOMP** | N/A | Linux-specific syscall filtering |
+
+### 🍎 Apple Silicon & iOS Features
+
+| Feature | Support Level | Details |
+|---------|---------------|---------|
+| **PAC** | ✅ Full | ARM64E Pointer Authentication detection |
+| **Sandbox** | ✅ Advanced | Entitlement-based analysis |
+| **Code Signing** | ✅ Native | Mach-O signature verification |
+| **Hardened Runtime** | ✅ Complete | Runtime protection analysis |
+
+---
+
+## 📈 Development Status
+
+### ✅ Current State
+- **All features implemented** with 100% test coverage
+- **Production ready** for security analysis workflows
+- **Actively maintained** with regular updates
+
+### 🆕 Recent Additions
 - ARM64E/Pointer Authentication Code (PAC) detection
 - Enhanced sandbox detection with entitlement parsing
 - Universal binary support with architecture preference
 - Comprehensive positive/negative test coverage
 
-## Contributing
+---
 
-This is a security-focused tool designed for defensive analysis. Contributions should maintain focus on legitimate security research and system hardening applications.
+## 🤝 Contributing
 
-## License
+**machsec** is focused on **defensive security analysis**. Contributions should maintain this focus on:
+
+- ✅ Legitimate security research
+- ✅ System hardening applications
+- ✅ Binary security analysis
+- ✅ Apple platform security features
+
+---
+
+## 📄 License
 
 Released under open source license for security research and system administration use.
+
+<div align="center">
+
+  ---
+
+  **Made with ❤️ for the macOS/iOS security community**
+
+  ⭐ Star this project if you find it useful!
+
+</div>
