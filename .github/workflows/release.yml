@@ -14,10 +14,14 @@ on:
 jobs:
   build:
     name: Build for macOS
-    runs-on: macos-latest
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        include:
+          - arch: x86_64
+            runner: macos-13  # Intel runner
+          - arch: arm64
+            runner: macos-latest  # ARM64 runner
+    runs-on: ${{ matrix.runner }}
 
     steps:
     - name: Checkout code
@@ -29,20 +33,14 @@ jobs:
 
     - name: Set up build environment for ${{ matrix.arch }}
       run: |
-        if [ "${{ matrix.arch }}" = "x86_64" ]; then
-          echo "ARCH_FLAGS=-arch x86_64" >> $GITHUB_ENV
-          echo "BINARY_SUFFIX=-x86_64" >> $GITHUB_ENV
-        else
-          echo "ARCH_FLAGS=-arch arm64" >> $GITHUB_ENV
-          echo "BINARY_SUFFIX=-arm64" >> $GITHUB_ENV
-        fi
+        echo "BINARY_SUFFIX=-${{ matrix.arch }}" >> $GITHUB_ENV
 
     - name: Build for ${{ matrix.arch }}
       run: |
         make clean
-        # Set include and library paths for Capstone
+        # Set include and library paths for Capstone (native architecture)
         CAPSTONE_PREFIX=$(brew --prefix capstone)
-        export CFLAGS="-Wall -g -DDARWIN $ARCH_FLAGS -I$CAPSTONE_PREFIX/include"
+        export CFLAGS="-Wall -g -DDARWIN -I$CAPSTONE_PREFIX/include"
         export LDFLAGS="-L$CAPSTONE_PREFIX/lib"
         make CC="gcc" CFLAGS="$CFLAGS" LIBS="$LDFLAGS -lcapstone"
 
