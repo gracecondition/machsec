@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 LIBS = -lcapstone
-TARGET = rapl
+TARGET = machsec
 SOURCES = main.c detect.c table.c
 
 # Support for both macOS and iOS

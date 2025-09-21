@@ -1,10 +1,10 @@
-# RIPEAPPLE
+# machsec
 
-A comprehensive binary security analysis tool that detects and reports on security mitigations enabled in Mach-O executables for macOS and iOS. Originally designed for ELF binaries, RIPEAPPLE has been fully ported to support Apple's Mach-O format with enhanced detection capabilities for Apple platform-specific security features.
+A comprehensive binary security analysis tool that detects and reports on security mitigations enabled in Mach-O executables for macOS and iOS. Originally designed for ELF binaries, machsec has been fully ported to support Apple's Mach-O format with enhanced detection capabilities for Apple platform-specific security features.
 
 ## Features
 
-RIPEAPPLE analyzes Mach-O binaries for the following security mitigations:
+machsec analyzes Mach-O binaries for the following security mitigations:
 
 ### Core Memory Protection Features
 - **RELRO** (Relocation Read-Only) - Limited support on macOS due to Mach-O format differences
@@ -64,19 +64,19 @@ make test
 ### Basic Analysis
 ```bash
 # Analyze a system binary
-./rapl /bin/ls
+./machsec /bin/ls
 
 # Check an iOS/macOS application
-./rapl /Applications/Safari.app/Contents/MacOS/Safari
+./machsec /Applications/Safari.app/Contents/MacOS/Safari
 
 # Analyze a custom binary
-./rapl ./myapp
+./machsec ./myapp
 ```
 
 ### Sample Output
 ```
 ╔═══════════════════════════════════════════════════════════════════╗
-║                      RipeApple Security Report                    ║
+║                      machsec Security Report                      ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ RELRO               No RELRO                                      ║
 ║ CANARIES            Stack canaries found                          ║
@@ -109,7 +109,7 @@ The tool displays results in a color-coded table format:
 
 ## Comparison with Similar Tools
 
-| Feature | RIPEAPPLE | checksec.rs | checksec-js | Traditional checksec |
+| Feature | machsec | checksec.rs | checksec-js | Traditional checksec |
 |---------|-----------|-------------|-------------|----------------------|
 | **Platform Support** |
 | macOS/iOS Mach-O | ✅ **Full support** | ✅ Basic support | ✅ Basic support | ❌ Linux ELF only |
@@ -149,7 +149,7 @@ The tool displays results in a color-coded table format:
 
 ## Architecture Support
 
-RIPEAPPLE supports analysis of Mach-O binaries for:
+machsec supports analysis of Mach-O binaries for:
 
 - **x86_64** (Intel Macs)
 - **ARM64** (Apple Silicon Macs, iOS devices)

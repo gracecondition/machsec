@@ -145,7 +145,7 @@ validate_detection() {
     fi
     
     # Get the detection result
-    local result=$(./rapl "$binary" 2>/dev/null | grep "^║.*$feature" || true)
+    local result=$(./machsec "$binary" 2>/dev/null | grep "^║.*$feature" || true)
     
     if [ -z "$result" ]; then
         print_test_result "$test_description" "FAIL" "Feature $feature not found in analyzer output"
@@ -759,8 +759,8 @@ main() {
     echo -e "• Compatibility with various binary types${NC}\n"
     
     # Verify analyzer exists
-    if [ ! -x "./rapl" ]; then
-        echo -e "${RED}❌ Error: RIPEAPPLE analyzer './rapl' not found or not executable${NC}"
+    if [ ! -x "./machsec" ]; then
+        echo -e "${RED}❌ Error: machsec analyzer './machsec' not found or not executable${NC}"
         echo -e "   Please run 'make' to build the analyzer first."
         exit 1
     fi
