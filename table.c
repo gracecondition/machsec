@@ -2,6 +2,8 @@
 #include <string.h>
 #include "table.h"
 
+#define VERSION "1.0.0"
+
 // Map color enum to ANSI escape codes
 const char* get_color_code(text_color_t color) {
     switch (color) {
@@ -15,7 +17,7 @@ const char* get_color_code(text_color_t color) {
 // Print the security table
 void print_security_table(security_feature_t features[], int count) {
     printf("\n\033[1;36m╔═══════════════════════════════════════════════════════════════════╗\033[0m\n");
-    printf("\033[1;36m║                       machsec Security Report                     ║\033[0m\n");
+    printf("\033[1;36m║                          machsec " VERSION "                            ║\033[0m\n");
     printf("\033[1;36m╠═══════════════════════════════════════════════════════════════════╣\033[0m\n");
 
     for (int i = 0; i < count; i++) {
