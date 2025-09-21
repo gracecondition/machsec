@@ -1,0 +1,122 @@
+CC = clang
+CFLAGS_BASE = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+
+# Security mitigation flags
+CANARY_ON = -fstack-protector-all
+CANARY_OFF = -fno-stack-protector
+
+FORTIFY_ON = -O2 -D_FORTIFY_SOURCE=2
+FORTIFY_OFF = -O0 -U_FORTIFY_SOURCE
+
+PIE_ON = -fPIE -pie
+PIE_OFF = -fno-pie -no-pie
+
+NX_ON = # NX is enabled by default on modern systems
+NX_OFF = -Wl,-allow_stack_execute
+
+RELRO_ON = # Limited support on macOS, but we can try
+RELRO_OFF = # Limited control on macOS
+
+SYMBOLS_ON = # Keep symbols (default)
+SYMBOLS_OFF = -s
+
+RPATH_ON = -Wl,-rpath,/tmp/unsafe/path
+RPATH_OFF = # No RPATH (default - secure)
+
+# Advanced mitigations (mostly for testing detection, may not all work on macOS)
+CFI_ON = -fsanitize=cfi -flto
+CFI_OFF = 
+
+UBSAN_ON = -fsanitize=undefined
+UBSAN_OFF = 
+
+ASAN_ON = -fsanitize=address
+ASAN_OFF = 
+
+# Architecture-specific
+ARM64_ARCH = -arch arm64
+ARM64E_ARCH = -arch arm64e
+X86_64_ARCH = -arch x86_64
+
+PAC_ON = $(ARM64E_ARCH) -mbranch-protection=pac-ret
+PAC_OFF = $(ARM64_ARCH)
+
+.PHONY: all clean canaries pie nx fortify relro symbols rpath advanced pac
+
+all: canaries pie nx fortify relro symbols rpath advanced pac
+
+# Stack Canaries Tests
+canaries:
+	@echo "Building canary test binaries..."
+	$(CC) $(CFLAGS_BASE) $(CANARY_ON) -o canary_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(CANARY_OFF) -o canary_disabled test_sample.c
+
+# PIE Tests  
+pie:
+	@echo "Building PIE test binaries..."
+	$(CC) $(CFLAGS_BASE) $(PIE_ON) -o pie_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(PIE_OFF) -o pie_disabled test_sample.c
+
+# NX Tests
+nx:
+	@echo "Building NX test binaries..."
+	$(CC) $(CFLAGS_BASE) $(NX_ON) -o nx_enabled test_sample.c
+	# Note: NX_OFF might not work on modern macOS due to security restrictions
+
+# FORTIFY Tests
+fortify:
+	@echo "Building FORTIFY test binaries..."
+	$(CC) $(CFLAGS_BASE) $(FORTIFY_ON) -o fortify_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(FORTIFY_OFF) -o fortify_disabled test_sample.c
+
+# RELRO Tests (limited on macOS)
+relro:
+	@echo "Building RELRO test binaries..."
+	$(CC) $(CFLAGS_BASE) -o relro_default test_sample.c
+	# macOS has limited RELRO control
+
+# Symbol Stripping Tests
+symbols:
+	@echo "Building symbol test binaries..."
+	$(CC) $(CFLAGS_BASE) -o symbols_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(SYMBOLS_OFF) -o symbols_disabled test_sample.c
+
+# RPATH Tests
+rpath:
+	@echo "Building RPATH test binaries..."
+	$(CC) $(CFLAGS_BASE) $(RPATH_ON) -o rpath_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(RPATH_OFF) -o rpath_disabled test_sample.c
+
+# Advanced Mitigations Tests
+advanced:
+	@echo "Building advanced mitigation test binaries..."
+	# CFI (may require special setup)
+	-$(CC) $(CFLAGS_BASE) $(CFI_ON) -o cfi_enabled test_sample.c 2>/dev/null || echo "CFI build failed (expected on some systems)"
+	$(CC) $(CFLAGS_BASE) $(CFI_OFF) -o cfi_disabled test_sample.c
+	
+	# UBSan
+	$(CC) $(CFLAGS_BASE) $(UBSAN_ON) -o ubsan_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(UBSAN_OFF) -o ubsan_disabled test_sample.c
+	
+	# ASAN
+	$(CC) $(CFLAGS_BASE) $(ASAN_ON) -o asan_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(ASAN_OFF) -o asan_disabled test_sample.c
+
+# PAC Tests (already created, but let's ensure they're here)
+pac:
+	@echo "Building PAC test binaries..."
+	$(CC) $(CFLAGS_BASE) $(PAC_ON) -o pac_enabled test_sample.c
+	$(CC) $(CFLAGS_BASE) $(PAC_OFF) -o pac_disabled test_sample.c
+
+clean:
+	rm -f canary_enabled canary_disabled
+	rm -f pie_enabled pie_disabled
+	rm -f nx_enabled nx_disabled  
+	rm -f fortify_enabled fortify_disabled
+	rm -f relro_default
+	rm -f symbols_enabled symbols_disabled
+	rm -f rpath_enabled rpath_disabled
+	rm -f cfi_enabled cfi_disabled
+	rm -f ubsan_enabled ubsan_disabled
+	rm -f asan_enabled asan_disabled
+	rm -f pac_enabled pac_disabled
