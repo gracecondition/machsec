@@ -1,5 +1,9 @@
 # machsec
 
+<div align="center">
+  <img src="assets/logo.png" alt="machsec logo" width="200">
+</div>
+
 A comprehensive binary security analysis tool that detects and reports on security mitigations enabled in Mach-O executables for macOS and iOS. Originally designed for ELF binaries, machsec has been fully ported to support Apple's Mach-O format with enhanced detection capabilities for Apple platform-specific security features.
 
 ## Features
@@ -74,32 +78,10 @@ make test
 ```
 
 ### Sample Output
-```
-╔═══════════════════════════════════════════════════════════════════╗
-║                      machsec Security Report                      ║
-╠═══════════════════════════════════════════════════════════════════╣
-║ RELRO               No RELRO                                      ║
-║ CANARIES            Stack canaries found                          ║
-║ NX                  NX enabled                                    ║
-║ PIE                 PIE enabled                                   ║
-║ RPATH               No RPATH                                      ║
-║ RUNPATH             No @rpath usage                               ║
-║ FORTIFY             FORTIFY enabled                               ║
-║ UBSan               No UBSan                                      ║
-║ ASAN                No ASAN                                       ║
-║ CFI                 No CFI                                        ║
-║ CET                 No CET (macOS)                                ║
-║ SYMBOLS             Not stripped (92 symbols)                    ║
-║ STACK CLASH         Stack protection enabled                     ║
-║ HEAP COOKIES        No heap hardening                             ║
-║ INT OVERFLOW        No integer overflow protection                ║
-║ SANDBOX             Likely sandboxed (system binary)             ║
-║ HARDENED RT         Hardened Runtime enabled                     ║
-║ LIB VALIDATION      Library validation enabled                   ║
-║ CODE SIGNING        Code signed                                  ║
-║ PAC                 PAC enabled (ARM64E with PtrAuth ABI)        ║
-╚═══════════════════════════════════════════════════════════════════╝
-```
+
+<div align="center">
+  <img src="assets/screenshot.png" alt="machsec sample output" width="600">
+</div>
 
 ### Output Format
 The tool displays results in a color-coded table format:
