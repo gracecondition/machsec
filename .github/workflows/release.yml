@@ -41,9 +41,10 @@ jobs:
       run: |
         make clean
         # Set include and library paths for Capstone
-        export CFLAGS="-Wall -g -DDARWIN $ARCH_FLAGS -I$(brew --prefix capstone)/include"
-        export LDFLAGS="-L$(brew --prefix capstone)/lib"
-        make CC="gcc" CFLAGS="$CFLAGS" LIBS="-lcapstone"
+        CAPSTONE_PREFIX=$(brew --prefix capstone)
+        export CFLAGS="-Wall -g -DDARWIN $ARCH_FLAGS -I$CAPSTONE_PREFIX/include"
+        export LDFLAGS="-L$CAPSTONE_PREFIX/lib"
+        make CC="gcc" CFLAGS="$CFLAGS" LIBS="$LDFLAGS -lcapstone"
 
     - name: Rename binary with architecture suffix
       run: |
