@@ -1,0 +1,178 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build:
+    name: Build for macOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        brew install capstone
+
+    - name: Set up build environment for ${{ matrix.arch }}
+      run: |
+        if [ "${{ matrix.arch }}" = "x86_64" ]; then
+          echo "ARCH_FLAGS=-arch x86_64" >> $GITHUB_ENV
+          echo "BINARY_SUFFIX=-x86_64" >> $GITHUB_ENV
+        else
+          echo "ARCH_FLAGS=-arch arm64" >> $GITHUB_ENV
+          echo "BINARY_SUFFIX=-arm64" >> $GITHUB_ENV
+        fi
+
+    - name: Build for ${{ matrix.arch }}
+      run: |
+        make clean
+        CC="gcc $ARCH_FLAGS" make
+
+    - name: Rename binary with architecture suffix
+      run: |
+        mv machsec machsec$BINARY_SUFFIX
+
+    - name: Test binary
+      run: |
+        ./machsec$BINARY_SUFFIX --help || true
+        file machsec$BINARY_SUFFIX
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: machsec-macos-${{ matrix.arch }}
+        path: machsec${{ env.BINARY_SUFFIX }}
+        retention-days: 1
+
+  create-release:
+    name: Create Release
+    needs: build
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets
+
+        # Copy binaries to release assets
+        cp artifacts/machsec-macos-x86_64/machsec-x86_64 release-assets/
+        cp artifacts/machsec-macos-arm64/machsec-arm64 release-assets/
+
+        # Create universal binary
+        lipo -create -output release-assets/machsec-universal \
+          release-assets/machsec-x86_64 \
+          release-assets/machsec-arm64
+
+        # Make all binaries executable
+        chmod +x release-assets/*
+
+        # Verify the binaries
+        echo "=== Binary Information ==="
+        for binary in release-assets/machsec-*; do
+          echo "File: $(basename $binary)"
+          file "$binary"
+          echo "---"
+        done
+
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: machsec ${{ steps.version.outputs.version }}
+        body: |
+          # machsec ${{ steps.version.outputs.version }}
+
+          A comprehensive binary security analysis tool for macOS and iOS.
+
+          ## Downloads
+
+          Choose the appropriate binary for your system:
+
+          - **machsec-x86_64**: For Intel Macs (x86_64 architecture)
+          - **machsec-arm64**: For Apple Silicon Macs (ARM64 architecture)
+          - **machsec-universal**: Universal binary (works on both Intel and Apple Silicon)
+
+          ## Installation
+
+          1. Download the appropriate binary for your system
+          2. Make it executable: `chmod +x machsec-*`
+          3. Optionally move to your PATH: `sudo mv machsec-* /usr/local/bin/machsec`
+
+          ## Usage
+
+          ```bash
+          ./machsec-universal /path/to/binary
+          ```
+
+          ## Requirements
+
+          - macOS 10.15 or later
+          - Capstone disassembly engine: `brew install capstone`
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/commits/${{ steps.version.outputs.version }}
+        draft: false
+        prerelease: false
+
+    - name: Upload x86_64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/machsec-x86_64
+        asset_name: machsec-x86_64
+        asset_content_type: application/octet-stream
+
+    - name: Upload ARM64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/machsec-arm64
+        asset_name: machsec-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Universal binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/machsec-universal
+        asset_name: machsec-universal
+        asset_content_type: application/octet-stream
