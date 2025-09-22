@@ -14,6 +14,12 @@
 
   **machsec** detects and reports security mitigations in Mach-O executables with comprehensive support for Apple platform-specific security features. Originally designed for ELF binaries, it has been fully ported and enhanced for macOS and iOS environments.
 </div>
+### Example Output
+
+<div align="center">
+  <img src="assets/screenshot.png" alt="machsec analysis results" width="700">
+  <p><em>Sample security analysis output showing comprehensive mitigation detection</em></p>
+</div>
 
 ## 🔍 Features
 
@@ -124,12 +130,6 @@ sudo make install
 ./machsec /path/to/ios/app
 ```
 
-### Example Output
-
-<div align="center">
-  <img src="assets/screenshot.png" alt="machsec analysis results" width="700">
-  <p><em>Sample security analysis output showing comprehensive mitigation detection</em></p>
-</div>
 
 ### Understanding Results
 
