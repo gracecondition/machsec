@@ -62,7 +62,7 @@ macho_t* macho_open(const char *path) {
         macho->load_commands = (struct load_command *)((char *)macho->data + sizeof(struct mach_header_64));
     } else if (*magic == MH_MAGIC || *magic == MH_CIGAM) {
         macho->is_64bit = false;
-        struct mach_header *header32 = (struct mach_header *)macho->data;
+        //struct mach_header *header32 = (struct mach_header *)macho->data;
         macho->load_commands = (struct load_command *)((char *)macho->data + sizeof(struct mach_header));
     } else if (*magic == FAT_MAGIC || *magic == FAT_CIGAM) {
         macho->is_fat = true;
@@ -484,13 +484,6 @@ bool detect_cfi(struct DetectionResults *res, macho_t *macho) {
     return false;
 }
 
-bool detect_cet(struct DetectionResults *res, macho_t *macho) {
-    // CET is Intel-specific and not commonly used on macOS
-    res->cet_text = "No CET (macOS)";
-    res->cet_status = 1;
-    res->cet_color = COLOR_YELLOW;
-    return false;
-}
 
 bool detect_symbols(struct DetectionResults *res, macho_t *macho) {
     struct symtab_command *symtab = macho_get_symtab(macho);
@@ -719,7 +712,7 @@ bool detect_hardened_runtime(struct DetectionResults *res, macho_t *macho) {
     struct load_command *code_sig = macho_find_command(macho, LC_CODE_SIGNATURE);
     
     // Also check for iOS-specific security features
-    uint32_t flags = macho->is_64bit ? macho->header->flags : ((struct mach_header *)macho->data)->flags;
+    //uint32_t flags = macho->is_64bit ? macho->header->flags : ((struct mach_header *)macho->data)->flags;
     bool has_ios_security = false;
     
     // Check for iOS App Store binaries (encrypted)

@@ -32,7 +32,6 @@ int main(int argc, char *argv[]) {
     detect_ubsan(&res, macho);
     detect_asan(&res, macho);
     detect_cfi(&res, macho);
-    detect_cet(&res, macho);
     detect_symbols(&res, macho);
     detect_heap_cookies(&res, macho);
     detect_integer_overflow(&res, macho);
@@ -111,7 +110,6 @@ int main(int argc, char *argv[]) {
         {"UBSan",        res.ubsan_text,     res.ubsan_color},
         {"ASAN",         res.asan_text,      res.asan_color},
         {"CFI",          res.cfi_text,       res.cfi_color},
-        {"CET",          res.cet_text,       res.cet_color},
         {"SYMBOLS",      res.symbols_text,   res.symbols_color},
         {"STACK CLASH",  res.stack_clash_text, res.stack_clash_color},
         {"HEAP COOKIES", res.heap_cookies_text, res.heap_cookies_color},
