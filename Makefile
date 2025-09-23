@@ -13,6 +13,22 @@ endif
 $(TARGET): $(SOURCES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
 
+# Fuzzing targets
+fuzz-build:
+	afl-clang-fast $(CFLAGS) -o $(TARGET)-fuzz $(SOURCES) $(LIBS)
+
+fuzz-setup: fuzz-build
+	mkdir -p fuzz-inputs fuzz-outputs
+	cp /bin/ls fuzz-inputs/seed1
+	cp /usr/bin/file fuzz-inputs/seed2
+	cp /bin/cat fuzz-inputs/seed3
+
+fuzz: fuzz-setup
+	afl-fuzz -i fuzz-inputs -o fuzz-outputs ./$(TARGET)-fuzz @@
+
+fuzz-clean:
+	rm -rf fuzz-inputs fuzz-outputs $(TARGET)-fuzz
+
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/
 
@@ -45,5 +61,4 @@ clean:
 	$(MAKE) -C tests/nx-heap-test clean
 	$(MAKE) -C tests/nx-stack-test clean
 
-.PHONY: clean install test static
-
+.PHONY: clean install test static fuzz-build fuzz-setup fuzz fuzz-clean

@@ -3,6 +3,9 @@ prepo
 *.o
 *.so
 *.a
+machsec
+machsec-arm64
+machsec-fuzz
 
 # Debug files
 *.dSYM/
@@ -36,3 +39,7 @@ Thumbs.db
 # Core dumps
 core
 core.*
+
+# fuzzing-dirs
+fuzz-outputs
+fuzz-inputs
