@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -11,6 +13,29 @@
 #include <mach-o/nlist.h>
 #include <mach-o/fat.h>
 #include <mach/machine.h>
+
+// General error handling with clean exit
+static void fatal_error(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    fprintf(stderr, "Error: ");
+    vfprintf(stderr, format, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+    exit(1);
+}
+
+// Bounds checking helpers
+static inline bool ptr_in_bounds(const void *ptr, size_t size, const macho_t *macho) {
+    return (char*)ptr >= (char*)macho->data &&
+           (char*)ptr + size <= (char*)macho->data + macho->size;
+}
+
+static inline void validate_load_command(struct load_command *cmd, uint32_t index, const macho_t *macho) {
+    if (!ptr_in_bounds(cmd, sizeof(struct load_command), macho)) {
+        fatal_error("Malformed Mach-O file - load command %u points outside file boundaries", index);
+    }
+}
 
 // Helper function for searching memory (memmem may not be available on all systems)
 static void* search_memory(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen) {
@@ -129,12 +154,20 @@ struct segment_command_64* macho_find_segment(macho_t *macho, const char *segnam
     uint32_t ncmds = macho->is_64bit ? macho->header->ncmds : ((struct mach_header *)macho->data)->ncmds;
     
     for (uint32_t i = 0; i < ncmds; i++) {
+        validate_load_command(cmd, i, macho);
+
         if (macho->is_64bit && cmd->cmd == LC_SEGMENT_64) {
+            if (!ptr_in_bounds(cmd, sizeof(struct segment_command_64), macho)) {
+                fatal_error("Malformed Mach-O file - 64-bit segment command %u extends beyond file boundaries", i);
+            }
             struct segment_command_64 *seg = (struct segment_command_64 *)cmd;
             if (strncmp(seg->segname, segname, 16) == 0) {
                 return seg;
             }
         } else if (!macho->is_64bit && cmd->cmd == LC_SEGMENT) {
+            if (!ptr_in_bounds(cmd, sizeof(struct segment_command), macho)) {
+                fatal_error("Malformed Mach-O file - 32-bit segment command %u extends beyond file boundaries", i);
+            }
             struct segment_command *seg32 = (struct segment_command *)cmd;
             if (strncmp(seg32->segname, segname, 16) == 0) {
                 // Convert to 64-bit structure for consistency
@@ -153,6 +186,21 @@ struct segment_command_64* macho_find_segment(macho_t *macho, const char *segnam
                 return &seg64;
             }
         }
+
+        // Validate cmdsize before advancing pointer
+        if (cmd->cmdsize < sizeof(struct load_command)) {
+            fatal_error("Malformed Mach-O file - load command %u has invalid size %u (minimum %zu)",
+                       i, cmd->cmdsize, sizeof(struct load_command));
+        }
+        if (cmd->cmdsize % 4 != 0) {
+            fatal_error("Malformed Mach-O file - load command %u has misaligned size %u (must be 4-byte aligned)",
+                       i, cmd->cmdsize);
+        }
+        if (!ptr_in_bounds(cmd, cmd->cmdsize, macho)) {
+            fatal_error("Malformed Mach-O file - load command %u size %u extends beyond file boundaries",
+                       i, cmd->cmdsize);
+        }
+
         cmd = (struct load_command *)((char *)cmd + cmd->cmdsize);
     }
     return NULL;
