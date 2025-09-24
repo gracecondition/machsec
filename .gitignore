@@ -43,3 +43,4 @@ core.*
 # fuzzing-dirs
 fuzz-outputs
 fuzz-inputs
+tests/*/test*
