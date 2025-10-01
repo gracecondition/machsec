@@ -145,13 +145,13 @@ validate_detection() {
     fi
     
     # Get the detection result
-    local result=$(./machsec "$binary" 2>/dev/null | grep "^║.*$feature" || true)
-    
+    local result=$(./machsec "$binary" 2>/dev/null | grep "│.*$feature" || true)
+
     if [ -z "$result" ]; then
         print_test_result "$test_description" "FAIL" "Feature $feature not found in analyzer output"
         return 1
     fi
-    
+
     # Extract the actual status from the result
     # Clean the result first to remove color codes
     local clean_result=$(echo "$result" | sed 's/\x1b\[[0-9;]*m//g')
@@ -171,11 +171,11 @@ validate_detection() {
     fi
     
     if [ "$expected" = "$actual_status" ]; then
-        local clean_result=$(echo "$result" | sed -e 's/\x1b\[[0-9;]*m//g' | sed -e 's/^║[[:space:]]*//' -e 's/[[:space:]]*║$//')
+        local clean_result=$(echo "$result" | sed -e 's/\x1b\[[0-9;]*m//g' | sed -e 's/^│[[:space:]]*//' -e 's/[[:space:]]*│$//')
         print_test_result "$test_description" "PASS" "$clean_result"
         return 0
     else
-        local clean_result=$(echo "$result" | sed -e 's/\x1b\[[0-9;]*m//g' | sed -e 's/^║[[:space:]]*//' -e 's/[[:space:]]*║$//')
+        local clean_result=$(echo "$result" | sed -e 's/\x1b\[[0-9;]*m//g' | sed -e 's/^│[[:space:]]*//' -e 's/[[:space:]]*│$//')
         print_test_result "$test_description" "FAIL" "Expected: $expected, Got: $actual_status ($clean_result)"
         return 1
     fi

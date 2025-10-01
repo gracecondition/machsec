@@ -8,7 +8,7 @@
   [![License](https://img.shields.io/badge/license-Open%20Source-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20iOS-green.svg)](#)
   [![Architecture](https://img.shields.io/badge/arch-x86__64%20%7C%20ARM64-orange.svg)](#)
-  [![Tests](https://img.shields.io/badge/tests-30%2F30%20passing-brightgreen.svg)](#testing)
+  [![Tests](https://img.shields.io/badge/tests-41%2F41%20passing-brightgreen.svg)](#testing)
 
   ---
 
@@ -166,7 +166,7 @@ sudo make install
 | PAC (Pointer Auth) | ✅ **ARM64E detection** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
 | **⚡ Technical** |
 | Detection Method | **Static + disassembly + entitlements** | Static analysis | Static analysis | Symbol table only |
-| Test Coverage | ✅ **100% (30/30 tests)** | ❌ Limited | ❌ Limited | ❌ Basic |
+| Test Coverage | ✅ **100% (41/41 tests)** | ❌ Limited | ❌ Limited | ❌ Basic |
 
 </details>
 
@@ -212,8 +212,8 @@ make test
 
 ```
 Test Execution Statistics:
-├─ Total Tests Run: 30
-├─ Tests Passed: 30  ✅
+├─ Total Tests Run: 41
+├─ Tests Passed: 41  ✅
 ├─ Tests Failed: 0   ✅
 └─ Success Rate: 100% 🎯
 ```
