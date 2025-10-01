@@ -66,6 +66,7 @@
 - **Library Validation** - Ensures only system-signed libraries can be loaded
 - **Code Signing** - Binary signature verification for macOS/iOS
 - **PAC** (Pointer Authentication Code) - ARM64 hardware-assisted code integrity for Apple Silicon and iOS devices
+- **MIE/EMTE** (Memory Integrity Enforcement / Enhanced Memory Tagging Extension) - ARM64 memory tagging instruction detection for iOS 26+
 
 </details>
 
@@ -287,6 +288,7 @@ src/
 - **Actively maintained** with regular updates
 
 ### 🆕 Recent Additions
+- MIE/EMTE (Memory Integrity Enforcement) detection for iOS 26+ binaries
 - ARM64E/Pointer Authentication Code (PAC) detection
 - Enhanced sandbox detection with entitlement parsing
 - Universal binary support with architecture preference

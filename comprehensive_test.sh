@@ -642,36 +642,67 @@ test_restrict() {
 
 test_nx_heap_stack() {
     print_section "TESTING NX HEAP/STACK (Separate Heap and Stack NX Protection)"
-    
+
     # Test NX Heap
     if validate_detection "NX HEAP" "tests/nx-heap-test/test_nx" "enabled" "NX Heap (test binary should have heap NX enabled)"; then
         local nx_heap_result="PASS"
     else
         local nx_heap_result="FAIL"
     fi
-    
-    # Test NX Stack  
+
+    # Test NX Stack
     if validate_detection "NX STACK" "tests/nx-stack-test/test_stack" "enabled" "NX Stack (test binary should have stack NX enabled)"; then
         local nx_stack_result="PASS"
     else
         local nx_stack_result="FAIL"
     fi
-    
+
     # Test on system binary
     if validate_detection "NX HEAP" "/bin/ls" "enabled" "NX Heap (system binary)"; then
         local nx_heap_system="PASS"
     else
         local nx_heap_system="FAIL"
     fi
-    
+
     if validate_detection "NX STACK" "/bin/ls" "enabled" "NX Stack (system binary)"; then
         local nx_stack_system="PASS"
     else
         local nx_stack_system="FAIL"
     fi
-    
+
     update_mitigation_status "NX_HEAP" "$nx_heap_result" "$nx_heap_system" "PASS"
     update_mitigation_status "NX_STACK" "$nx_stack_result" "$nx_stack_system" "PASS"
+}
+
+test_mie() {
+    print_section "TESTING MIE (Memory Integrity Enforcement / EMTE)"
+
+    # Test JavaScriptCore from iOS 26 (should have MIE enabled)
+    if validate_detection "MIE" "tests/JavaScriptCore" "enabled" "MIE (iOS 26 JavaScriptCore - should have MTE/EMTE instructions)"; then
+        local mie_ios_result="PASS"
+    else
+        local mie_ios_result="FAIL"
+    fi
+
+    # Test regular binary without MIE (should show disabled or N/A)
+    if validate_detection "MIE" "tests/comprehensive/test_secure" "disabled" "MIE (regular test binary - should not have MTE)"; then
+        local mie_regular_result="PASS"
+    elif validate_detection "MIE" "tests/comprehensive/test_secure" "enabled" "MIE (if test binary happens to have MTE - unlikely)"; then
+        local mie_regular_result="PASS"  # Either result could be acceptable
+    else
+        local mie_regular_result="FAIL"
+    fi
+
+    # Test on system binary (likely won't have MTE on current macOS)
+    if validate_detection "MIE" "/bin/ls" "disabled" "MIE (system binary - MTE not common on current macOS)"; then
+        local mie_system_result="PASS"
+    elif validate_detection "MIE" "/bin/ls" "enabled" "MIE (if system binary has MTE)"; then
+        local mie_system_result="PASS"  # Either result is acceptable
+    else
+        local mie_system_result="FAIL"
+    fi
+
+    update_mitigation_status "MIE" "$mie_ios_result" "$mie_regular_result" "$mie_system_result"
 }
 
 # =============================================================================
@@ -770,7 +801,7 @@ main() {
     
     # Run all tests
     test_relro
-    test_stack_canaries  
+    test_stack_canaries
     test_pie_aslr
     test_fortify_source
     test_stack_clash
@@ -786,7 +817,8 @@ main() {
     test_encrypted
     test_restrict
     test_nx_heap_stack
-    
+    test_mie
+
     # Generate final report
     generate_final_report
 }

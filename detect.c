@@ -1149,14 +1149,14 @@ bool detect_nx_heap(struct DetectionResults *res, macho_t *macho) {
 bool detect_nx_stack(struct DetectionResults *res, macho_t *macho) {
     // Check stack segments for NX protection
     struct segment_command_64 *stack_seg = macho_find_segment(macho, "__STACK");
-    
+
     bool stack_nx = true;
-    
+
     // Check if stack segment exists and is executable (bad for NX)
     if (stack_seg && (stack_seg->initprot & VM_PROT_EXECUTE)) {
         stack_nx = false;
     }
-    
+
     // If no explicit stack segment found, assume stack NX is enabled (default on modern macOS/iOS)
     if (stack_nx) {
         res->nx_stack_text = "NX stack enabled";
@@ -1167,6 +1167,129 @@ bool detect_nx_stack(struct DetectionResults *res, macho_t *macho) {
         res->nx_stack_text = "NX stack disabled";
         res->nx_stack_status = 2;
         res->nx_stack_color = COLOR_RED;
+        return false;
+    }
+}
+
+bool detect_mie(struct DetectionResults *res, cs_insn *insn, size_t count, macho_t *macho) {
+    // MIE (Memory Integrity Enforcement) / EMTE (Enhanced Memory Tagging Extension)
+    // is only available on ARM64 devices
+    uint32_t cputype = macho->is_64bit ? macho->header->cputype : ((struct mach_header *)macho->data)->cputype;
+
+    if (cputype != CPU_TYPE_ARM64) {
+        res->mie_text = "N/A (not ARM64)";
+        res->mie_status = 1;
+        res->mie_color = COLOR_YELLOW;
+        return false;
+    }
+
+    bool has_mte_instructions = false;
+    bool has_mte_symbols = false;
+    int mte_instruction_count = 0;
+
+    // Check for MTE/EMTE instructions in disassembly
+    if (insn && count > 0) {
+        for (size_t i = 0; i < count; i++) {
+            // Check for MTE-specific ARM64 instructions
+            // IRG - Insert Random Tag
+            if (strcmp(insn[i].mnemonic, "irg") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // STG - Store Allocation Tag
+            else if (strcmp(insn[i].mnemonic, "stg") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // ST2G - Store Allocation Tags (double)
+            else if (strcmp(insn[i].mnemonic, "st2g") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // STZ2G - Store Allocation Tags and Zero (double)
+            else if (strcmp(insn[i].mnemonic, "stz2g") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // STZG - Store Allocation Tag and Zero
+            else if (strcmp(insn[i].mnemonic, "stzg") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // LDG - Load Allocation Tag
+            else if (strcmp(insn[i].mnemonic, "ldg") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // ADDG - Add with Tag
+            else if (strcmp(insn[i].mnemonic, "addg") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // SUBG - Subtract with Tag
+            else if (strcmp(insn[i].mnemonic, "subg") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // GMI - Tag Mask Insert
+            else if (strcmp(insn[i].mnemonic, "gmi") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+            // SUBP/SUBPS - Subtract Pointer (used with MTE)
+            else if (strcmp(insn[i].mnemonic, "subp") == 0 || strcmp(insn[i].mnemonic, "subps") == 0) {
+                has_mte_instructions = true;
+                mte_instruction_count++;
+            }
+        }
+    }
+
+    // Check for MTE/EMTE-related symbols
+    struct symtab_command *symtab = macho_get_symtab(macho);
+    if (symtab) {
+        struct nlist_64 *symbols = (struct nlist_64 *)((char *)macho->data + symtab->symoff);
+        char *strings = (char *)macho->data + symtab->stroff;
+
+        for (uint32_t i = 0; i < symtab->nsyms; i++) {
+            if (symbols[i].n_un.n_strx > 0 && symbols[i].n_un.n_strx < symtab->strsize) {
+                char *name = strings + symbols[i].n_un.n_strx;
+
+                // Check for MTE/EMTE-related symbols
+                if (strstr(name, "_mte_") ||
+                    strstr(name, "_emte_") ||
+                    strstr(name, "memory_tagging") ||
+                    strstr(name, "_tag_") ||
+                    strstr(name, "tagged_ptr") ||
+                    strstr(name, "__hwasan") ||  // Hardware-assisted AddressSanitizer uses MTE
+                    strstr(name, "hwaddress")) {
+                    has_mte_symbols = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Determine MIE/EMTE status
+    if (has_mte_instructions) {
+        char *text_buffer = malloc(128);
+        if (text_buffer) {
+            snprintf(text_buffer, 128, "MIE/EMTE enabled (%d MTE instructions)", mte_instruction_count);
+            res->mie_text = text_buffer;
+        } else {
+            res->mie_text = "MIE/EMTE enabled";
+        }
+        res->mie_status = 0;
+        res->mie_color = COLOR_GREEN;
+        return true;
+    } else if (has_mte_symbols) {
+        res->mie_text = "MIE/EMTE enabled (symbols)";
+        res->mie_status = 0;
+        res->mie_color = COLOR_GREEN;
+        return true;
+    } else {
+        res->mie_text = "No MIE/EMTE detected";
+        res->mie_status = 2;
+        res->mie_color = COLOR_RED;
         return false;
     }
 }

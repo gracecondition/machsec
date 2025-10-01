@@ -2,7 +2,7 @@
 #include <string.h>
 #include "table.h"
 
-#define VERSION "1.4.1"
+#define VERSION "1.6"
 
 // Map color enum to ANSI escape codes
 const char* get_color_code(text_color_t color) {

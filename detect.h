@@ -123,7 +123,11 @@ struct DetectionResults {
     const char *nx_stack_text;
     int nx_stack_status;   // 0=good/green, 1=neutral/yellow, 2=warning/red
     text_color_t nx_stack_color;
-    
+
+    const char *mie_text;
+    int mie_status;   // 0=good/green, 1=neutral/yellow, 2=warning/red
+    text_color_t mie_color;
+
     int fortified_count;  // Count of fortified functions
 };
 
@@ -160,6 +164,7 @@ bool detect_encrypted(struct DetectionResults *res, macho_t *macho);
 bool detect_restrict(struct DetectionResults *res, macho_t *macho);
 bool detect_nx_heap(struct DetectionResults *res, macho_t *macho);
 bool detect_nx_stack(struct DetectionResults *res, macho_t *macho);
+bool detect_mie(struct DetectionResults *res, cs_insn *insn, size_t count, macho_t *macho);
 
 
 

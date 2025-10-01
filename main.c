@@ -80,16 +80,19 @@ int main(int argc, char *argv[]) {
         
         if (count > 0) {
             detect_canaries(&res, insn, count, macho);
+            detect_mie(&res, insn, count, macho);
             cs_free(insn, count);
         } else {
             // Even if disassembly fails, still check for canary symbols
             detect_canaries(&res, NULL, 0, macho);
+            detect_mie(&res, NULL, 0, macho);
         }
         
         cs_close(&handle);
     } else {
         // No TEXT segment found, but still check for canary symbols
         detect_canaries(&res, NULL, 0, macho);
+        detect_mie(&res, NULL, 0, macho);
     }
     
     // Run stack clash detection after canaries are detected
@@ -119,6 +122,7 @@ int main(int argc, char *argv[]) {
         {"LIB VALIDATION", res.library_validation_text, res.library_validation_color},
         {"CODE SIGNING", res.code_signing_text, res.code_signing_color},
         {"PAC", res.pac_text, res.pac_color},
+        {"MIE/EMTE", res.mie_text, res.mie_color},
         {"ARC", res.arc_text, res.arc_color},
         {"ENCRYPTED", res.encrypted_text, res.encrypted_color},
         {"RESTRICT", res.restrict_text, res.restrict_color},
