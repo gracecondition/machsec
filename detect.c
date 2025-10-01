@@ -1254,14 +1254,18 @@ bool detect_mie(struct DetectionResults *res, cs_insn *insn, size_t count, macho
             if (symbols[i].n_un.n_strx > 0 && symbols[i].n_un.n_strx < symtab->strsize) {
                 char *name = strings + symbols[i].n_un.n_strx;
 
-                // Check for MTE/EMTE-related symbols
+                // Check for MTE/EMTE-related symbols (be specific to avoid false positives)
                 if (strstr(name, "_mte_") ||
                     strstr(name, "_emte_") ||
                     strstr(name, "memory_tagging") ||
-                    strstr(name, "_tag_") ||
-                    strstr(name, "tagged_ptr") ||
                     strstr(name, "__hwasan") ||  // Hardware-assisted AddressSanitizer uses MTE
-                    strstr(name, "hwaddress")) {
+                    strstr(name, "hwaddress") ||
+                    (strstr(name, "tagged") && strstr(name, "ptr")) ||  // tagged_ptr but not just any "tagged"
+                    strstr(name, "_irg") ||  // MTE instruction functions
+                    strstr(name, "_stg") ||
+                    strstr(name, "_ldg") ||
+                    strstr(name, "_addg") ||
+                    strstr(name, "_subg")) {
                     has_mte_symbols = true;
                     break;
                 }

@@ -2,7 +2,7 @@
 #include <string.h>
 #include "table.h"
 
-#define VERSION "1.6"
+#define VERSION "1.6.1"
 
 // Map color enum to ANSI escape codes
 const char* get_color_code(text_color_t color) {
@@ -17,7 +17,16 @@ const char* get_color_code(text_color_t color) {
 // Print the security table
 void print_security_table(security_feature_t features[], int count) {
     printf("\n\033[1;36m╔═══════════════════════════════════════════════════════════════════╗\033[0m\n");
-    printf("\033[1;36m║                          machsec " VERSION "                            ║\033[0m\n");
+
+    // Print version header with proper centering
+    char version_line[100];
+    snprintf(version_line, sizeof(version_line), "machsec %s", VERSION);
+    int version_len = strlen(version_line);
+    int total_width = 67;  // Total width between the borders
+    int left_padding = (total_width - version_len) / 2;
+    int right_padding = total_width - version_len - left_padding;
+    printf("\033[1;36m║%*s%s%*s║\033[0m\n", left_padding, "", version_line, right_padding, "");
+
     printf("\033[1;36m╠═══════════════════════════════════════════════════════════════════╣\033[0m\n");
 
     for (int i = 0; i < count; i++) {
@@ -28,7 +37,9 @@ void print_security_table(security_feature_t features[], int count) {
         int display_len = strlen(text);
         printf("%s%s\033[0m", color, text);
 
-        int padding = 65 - 19 - display_len;  // 65 total width - 20 name - actual text length
+        // Calculate padding: total_width - "║ " - name_width - text_len - " ║"
+        int padding = total_width - 1 - 20 - display_len;
+        if (padding < 0) padding = 0;
         printf("%*s║\n", padding, "");
     }
 
