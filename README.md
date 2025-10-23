@@ -13,6 +13,7 @@
   ---
 
   **machsec** detects and reports security mitigations in Mach-O executables with comprehensive support for Apple platform-specific security features. Originally designed for ELF binaries, it has been fully ported and enhanced for macOS and iOS environments.
+For more info, check my [Security Blog](https://gracecondition.github.io/posts/machsec-documentation/)
 </div>
 
 ### Example Output
