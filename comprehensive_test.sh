@@ -162,7 +162,7 @@ validate_detection() {
         actual_status="disabled"
     elif echo "$clean_result" | grep -q "No RPATH\|No RUNPATH\|No @rpath usage\|Fully stripped"; then
         actual_status="enabled"  # "No RPATH" is actually good/enabled security
-    elif echo "$clean_result" | grep -q "enabled\|found\|Full\|Partial\|Code signed\|Potentially sandboxed\|Likely sandboxed\|Sandbox enabled\|may be sandboxed\|Hardened Runtime enabled\|Library validation enabled\|PAC enabled\|PAC capable\|ARC enabled\|SIP restrictions enabled\|System restrictions present\|System binary.*likely restricted"; then
+    elif echo "$clean_result" | grep -q "enabled\|found\|Full\|Partial\|Code signed\|Potentially sandboxed\|Likely sandboxed\|Sandbox enabled\|may be sandboxed\|Hardened Runtime enabled\|Library validation enabled\|PAC enabled\|PAC capable\|ARC enabled\|SIP restrictions enabled\|System restrictions present\|System binary.*restricted"; then
         actual_status="enabled"
     elif echo "$clean_result" | grep -q "No CET.*macOS\|N/A.*not ARM64\|No PAC detected\|No Objective-C/Swift"; then
         actual_status="disabled"  # Special case for macOS-specific N/A features
@@ -501,7 +501,7 @@ test_rpath_runpath() {
 
 test_macos_features() {
     print_section "TESTING macOS/iOS-SPECIFIC FEATURES"
-    
+
     # Test Hardened Runtime / iOS Security
     if validate_detection "HARDENED RT" "/bin/ls" "enabled" "Hardened Runtime (system binary should be hardened)"; then
         local hardened_rt_result="PASS"
@@ -510,14 +510,14 @@ test_macos_features() {
     else
         local hardened_rt_result="FAIL"
     fi
-    
+
     # Test Library Validation
     if validate_detection "LIB VALIDATION" "/bin/ls" "enabled" "Library Validation (system binary should use system libs)"; then
         local lib_val_result="PASS"
     else
         local lib_val_result="FAIL"
     fi
-    
+
     # Test Code Signing
     if validate_detection "CODE SIGNING" "/bin/ls" "enabled" "Code Signing (system binary should be signed)"; then
         local code_sign_result="PASS"
@@ -526,10 +526,65 @@ test_macos_features() {
     else
         local code_sign_result="FAIL"
     fi
-    
+
     update_mitigation_status "HARDENED_RUNTIME" "$hardened_rt_result" "PASS" "PASS"
     update_mitigation_status "LIBRARY_VALIDATION" "$lib_val_result" "PASS" "PASS"
     update_mitigation_status "CODE_SIGNING" "$code_sign_result" "PASS" "PASS"
+}
+
+test_code_signature_types() {
+    print_section "TESTING CODE SIGNATURE TYPES (Apple vs Adhoc)"
+
+    # Create test binaries with different signature types
+    local test_dir="tests/.codesign_test_$$"
+    mkdir -p "$test_dir"
+
+    # Create Apple-signed test (system binary)
+    cp /bin/ls "$test_dir/test_apple" 2>/dev/null || { echo -e "${YELLOW}⚠ Could not create test binary${NC}"; return; }
+
+    # Create adhoc-signed test
+    cp /bin/ls "$test_dir/test_adhoc" 2>/dev/null
+    codesign --remove-signature "$test_dir/test_adhoc" >/dev/null 2>&1
+    codesign -s - "$test_dir/test_adhoc" >/dev/null 2>&1
+
+    # Create unsigned test
+    cp /bin/ls "$test_dir/test_unsigned" 2>/dev/null
+    codesign --remove-signature "$test_dir/test_unsigned" >/dev/null 2>&1
+
+    # Test Apple signature detection
+    local apple_result=$(./machsec "$test_dir/test_apple" 2>/dev/null | grep "CODE SIGNING" | grep -o "Apple\|adhoc\|Not code signed" || echo "unknown")
+    if echo "$apple_result" | grep -q "Apple"; then
+        print_test_result "Code Signature Type (Apple signed)" "PASS" "Correctly detected Apple signature"
+        local apple_sig="PASS"
+    else
+        print_test_result "Code Signature Type (Apple signed)" "FAIL" "Expected 'Apple', got '$apple_result'"
+        local apple_sig="FAIL"
+    fi
+
+    # Test adhoc signature detection
+    local adhoc_result=$(./machsec "$test_dir/test_adhoc" 2>/dev/null | grep "CODE SIGNING" | grep -o "Apple\|adhoc\|Not code signed" || echo "unknown")
+    if echo "$adhoc_result" | grep -q "adhoc"; then
+        print_test_result "Code Signature Type (adhoc signed)" "PASS" "Correctly detected adhoc signature"
+        local adhoc_sig="PASS"
+    else
+        print_test_result "Code Signature Type (adhoc signed)" "FAIL" "Expected 'adhoc', got '$adhoc_result'"
+        local adhoc_sig="FAIL"
+    fi
+
+    # Test unsigned detection
+    local unsigned_result=$(./machsec "$test_dir/test_unsigned" 2>/dev/null | grep "CODE SIGNING" | grep -o "Apple\|adhoc\|Not code signed" || echo "unknown")
+    if echo "$unsigned_result" | grep -q "Not code signed"; then
+        print_test_result "Code Signature Type (unsigned)" "PASS" "Correctly detected no signature"
+        local unsigned_sig="PASS"
+    else
+        print_test_result "Code Signature Type (unsigned)" "FAIL" "Expected 'Not code signed', got '$unsigned_result'"
+        local unsigned_sig="FAIL"
+    fi
+
+    # Cleanup
+    rm -rf "$test_dir"
+
+    update_mitigation_status "CODE_SIGNATURE_TYPE" "$apple_sig" "$adhoc_sig" "$unsigned_sig"
 }
 
 test_pac() {
@@ -800,6 +855,7 @@ main() {
     test_symbol_stripping
     test_rpath_runpath
     test_macos_features
+    test_code_signature_types
     test_pac
     test_arc
     test_encrypted

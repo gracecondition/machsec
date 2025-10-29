@@ -2,7 +2,7 @@
 #include <string.h>
 #include "table.h"
 
-#define VERSION "1.6.5"
+#define VERSION "1.7.0"
 
 // Map color enum to ANSI escape codes (macOS system accent colors with better contrast)
 const char* get_color_code(text_color_t color) {

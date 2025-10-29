@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
 #include <mach-o/fat.h>
@@ -722,6 +723,24 @@ bool detect_sandbox(struct DetectionResults *res, macho_t *macho) {
         cmd = (struct load_command *)((char *)cmd + cmd->cmdsize);
     }
     
+    // Check for Apple platform identifier in signature (indicates system binary)
+    bool has_platform_id = false;
+    if (has_code_signature) {
+        struct load_command *sig_cmd = macho_find_command(macho, LC_CODE_SIGNATURE);
+        if (sig_cmd) {
+            struct linkedit_data_command *sig_data_cmd = (struct linkedit_data_command *)sig_cmd;
+            if (sig_data_cmd->datasize > 0) {
+                char *sig_data = (char *)macho->data + sig_data_cmd->dataoff;
+                // Look for "platform-application" or platform identifier markers
+                if (search_memory(sig_data, sig_data_cmd->datasize, "platform-application", 20) ||
+                    search_memory(sig_data, sig_data_cmd->datasize, "Software Signing", 16) ||
+                    search_memory(sig_data, sig_data_cmd->datasize, "Apple Code Signing", 18)) {
+                    has_platform_id = true;
+                }
+            }
+        }
+    }
+
     // Determine sandbox status based on evidence
     if (has_sandbox_symbols) {
         res->sandbox_text = "Sandbox enabled (symbols)";
@@ -733,20 +752,18 @@ bool detect_sandbox(struct DetectionResults *res, macho_t *macho) {
         res->sandbox_status = 0;
         res->sandbox_color = COLOR_GREEN;
         return true;
+    } else if (has_platform_id && has_code_signature) {
+        // Apple-signed system binary
+        res->sandbox_text = "Sandbox enabled (Apple system binary)";
+        res->sandbox_status = 0;
+        res->sandbox_color = COLOR_GREEN;
+        return true;
     } else if (has_code_signature) {
-        // Check if this is a system binary (likely sandboxed)
-        uint32_t flags = macho->is_64bit ? macho->header->flags : ((struct mach_header *)macho->data)->flags;
-        if (flags & MH_PIE) {  // System binaries are typically PIE
-            res->sandbox_text = "Likely sandboxed (system binary)";
-            res->sandbox_status = 1;
-            res->sandbox_color = COLOR_YELLOW;
-            return true;
-        } else {
-            res->sandbox_text = "Code signed (may be sandboxed)";
-            res->sandbox_status = 1;
-            res->sandbox_color = COLOR_YELLOW;
-            return true;
-        }
+        // Code signed but can't confirm sandbox status
+        res->sandbox_text = "Code signed (may be sandboxed)";
+        res->sandbox_status = 1;
+        res->sandbox_color = COLOR_YELLOW;
+        return true;
     } else {
         res->sandbox_text = "No sandbox";
         res->sandbox_status = 2;
@@ -826,11 +843,83 @@ bool detect_library_validation(struct DetectionResults *res, macho_t *macho) {
 
 bool detect_code_signing(struct DetectionResults *res, macho_t *macho) {
     struct load_command *code_sig = macho_find_command(macho, LC_CODE_SIGNATURE);
-    
+
     if (code_sig) {
-        res->code_signing_text = "Code signed";
-        res->code_signing_status = 0;
-        res->code_signing_color = COLOR_GREEN;
+        struct linkedit_data_command *sig_cmd = (struct linkedit_data_command *)code_sig;
+        bool is_adhoc = false;
+        bool found_cd = false;
+
+        // Check signature blob for adhoc signature
+        if (sig_cmd->datasize > 0 && sig_cmd->dataoff > 0) {
+            // Make sure signature data is within file bounds
+            if (sig_cmd->dataoff + sig_cmd->datasize > macho->size) {
+                // Signature extends beyond file, skip parsing
+                res->code_signing_text = "Code signed (unknown)";
+                res->code_signing_status = 1;
+                res->code_signing_color = COLOR_YELLOW;
+                return true;
+            }
+
+            char *sig_data = (char *)macho->data + sig_cmd->dataoff;
+
+            // Parse the code signature superblob
+            // Magic: 0xfade0cc0 (SuperBlob), at offset 0
+            if (sig_cmd->datasize >= 12) {
+                uint32_t magic_val = ntohl(*(uint32_t *)sig_data);
+
+                // Check for embedded signature (SuperBlob)
+                if (magic_val == 0xfade0cc0) {
+                    uint32_t superblob_len = ntohl(*(uint32_t *)(sig_data + 4));
+                    uint32_t blob_count = ntohl(*(uint32_t *)(sig_data + 8));
+
+                    // Sanity check blob_count
+                    if (blob_count > 0 && blob_count < 100 && superblob_len <= sig_cmd->datasize) {
+                        // Iterate through index entries to find CD (CodeDirectory)
+                        for (uint32_t i = 0; i < blob_count; i++) {
+                            uint32_t idx_offset = 12 + (i * 8);
+                            if (idx_offset + 8 > sig_cmd->datasize) break;
+
+                            uint32_t type = ntohl(*(uint32_t *)(sig_data + idx_offset));
+                            uint32_t cd_offset = ntohl(*(uint32_t *)(sig_data + idx_offset + 4));
+
+                            // Type 0 is CodeDirectory
+                            if (type == 0 && cd_offset + 16 <= sig_cmd->datasize) {
+                                char *cd_data = sig_data + cd_offset;
+
+                                // Verify CodeDirectory magic (0xfade0c02)
+                                uint32_t cd_magic = ntohl(*(uint32_t *)cd_data);
+                                if (cd_magic == 0xfade0c02) {
+                                    found_cd = true;
+                                    // CodeDirectory structure: magic(4) + length(4) + version(4) + flags(4)
+                                    uint32_t flags = ntohl(*(uint32_t *)(cd_data + 12));
+
+                                    // Adhoc signature flag is 0x2
+                                    if (flags & 0x2) {
+                                        is_adhoc = true;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (is_adhoc) {
+            res->code_signing_text = "Code signed (adhoc)";
+            res->code_signing_status = 1;
+            res->code_signing_color = COLOR_YELLOW;
+        } else if (found_cd) {
+            res->code_signing_text = "Code signed (Apple)";
+            res->code_signing_status = 0;
+            res->code_signing_color = COLOR_GREEN;
+        } else {
+            // Couldn't parse, but has signature
+            res->code_signing_text = "Code signed";
+            res->code_signing_status = 0;
+            res->code_signing_color = COLOR_GREEN;
+        }
         return true;
     } else {
         res->code_signing_text = "Not code signed";
@@ -1091,21 +1180,42 @@ bool detect_restrict(struct DetectionResults *res, macho_t *macho) {
         }
     }
     
+    // Check for Apple platform signature (indicates system binary)
+    bool has_apple_signature = false;
+    if (code_sig) {
+        struct linkedit_data_command *sig_cmd = (struct linkedit_data_command *)code_sig;
+        if (sig_cmd->datasize > 0) {
+            char *sig_data = (char *)macho->data + sig_cmd->dataoff;
+            // Look for Apple authority chain in signature
+            if (search_memory(sig_data, sig_cmd->datasize, "Software Signing", 16) ||
+                search_memory(sig_data, sig_cmd->datasize, "Apple Code Signing", 18) ||
+                search_memory(sig_data, sig_cmd->datasize, "Apple Root CA", 13)) {
+                has_apple_signature = true;
+            }
+        }
+    }
+
     // Determine restriction status
     if (has_sip_entitlements) {
         res->restrict_text = "SIP restrictions enabled";
         res->restrict_status = 0;
         res->restrict_color = COLOR_GREEN;
         return true;
+    } else if (has_apple_signature && has_system_path) {
+        // Apple-signed system binary with system libs - definitely restricted
+        res->restrict_text = "SIP restrictions enabled (Apple system binary)";
+        res->restrict_status = 0;
+        res->restrict_color = COLOR_GREEN;
+        return true;
     } else if (has_restricted_symbols) {
         res->restrict_text = "System restrictions present";
-        res->restrict_status = 1;
-        res->restrict_color = COLOR_YELLOW;
+        res->restrict_status = 0;
+        res->restrict_color = COLOR_GREEN;
         return true;
     } else if (has_system_path) {
-        res->restrict_text = "System binary (likely restricted)";
-        res->restrict_status = 1;
-        res->restrict_color = COLOR_YELLOW;
+        res->restrict_text = "System binary (restricted)";
+        res->restrict_status = 0;
+        res->restrict_color = COLOR_GREEN;
         return true;
     } else {
         res->restrict_text = "No restrictions";
