@@ -65,7 +65,7 @@ For more info, check my [Security Blog](https://gracecondition.github.io/posts/m
 - **Sandbox** (App Sandbox) - macOS/iOS application sandboxing with entitlement analysis
 - **Hardened Runtime** - macOS runtime hardening protections
 - **Library Validation** - Ensures only system-signed libraries can be loaded
-- **Code Signing** - Binary signature verification for macOS/iOS
+- **Code Signing** - Binary signature verification with signature type detection (Apple official vs adhoc)
 - **PAC** (Pointer Authentication Code) - ARM64 hardware-assisted code integrity for Apple Silicon and iOS devices
 - **MIE/EMTE** (Memory Integrity Enforcement / Enhanced Memory Tagging Extension) - ARM64 memory tagging instruction detection for iOS 26+
 
@@ -167,7 +167,7 @@ sudo make install
 | PAC (Pointer Auth) | ✅ **ARM64E detection** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
 | **⚡ Technical** |
 | Detection Method | **Static + disassembly + entitlements** | Static analysis | Static analysis | Symbol table only |
-| Test Coverage | ✅ **100% (41/41 tests)** | ❌ Limited | ❌ Limited | ❌ Basic |
+| Test Coverage | ✅ **100% (44/44 tests)** | ❌ Limited | ❌ Limited | ❌ Basic |
 
 </details>
 
@@ -178,7 +178,7 @@ sudo make install
 | 🍎 **Apple Platform Focus** | Only tool with comprehensive macOS/iOS-specific feature detection |
 | 🏗️ **Multi-Architecture** | Handles Universal binaries with intelligent architecture selection |
 | 🔬 **Advanced Detection** | Combines symbol analysis, disassembly, and entitlement parsing |
-| ✅ **Comprehensive Testing** | 30 test cases ensuring 100% detection accuracy |
+| ✅ **Comprehensive Testing** | 44 test cases ensuring 100% detection accuracy |
 | 🆕 **Modern Security** | Supports latest Apple Silicon PAC technology |
 
 ## 🏗️ Architecture Support
@@ -213,8 +213,8 @@ make test
 
 ```
 Test Execution Statistics:
-├─ Total Tests Run: 41
-├─ Tests Passed: 41  ✅
+├─ Total Tests Run: 44
+├─ Tests Passed: 44  ✅
 ├─ Tests Failed: 0   ✅
 └─ Success Rate: 100% 🎯
 ```
@@ -289,6 +289,7 @@ src/
 - **Actively maintained** with regular updates
 
 ### 🆕 Recent Additions
+- **Code Signature Type Detection** - Distinguishes between Apple official and adhoc signatures (v1.7.0)
 - MIE/EMTE (Memory Integrity Enforcement) detection for iOS 26+ binaries
 - ARM64E/Pointer Authentication Code (PAC) detection
 - Enhanced sandbox detection with entitlement parsing
